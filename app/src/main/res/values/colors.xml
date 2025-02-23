@@ -7,4 +7,13 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="p_illuminating">#F5DF4D</color>
+    <color name="p_illuminating_lighter">#f0e6a3</color>
+    <color name="p_spectre_red">#840016</color>
+    <color name="p_spectre_red_lighter">#951027</color>
+    <color name="p_estate_blue">#233658</color>
+    <color name="p_estate_blue_lighter">#324567</color>
+    <color name="p_hk_green">#009966</color>
+    <color name="p_green_802c">#44d62c</color>
+    <color name="p_bright_green">#009b5c</color>
 </resources>
