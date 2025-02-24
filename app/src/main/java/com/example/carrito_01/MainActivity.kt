@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.colorResource
@@ -111,13 +112,16 @@ fun ButtonRow() {
     var boton_2 by remember { mutableStateOf(R.drawable.lr_0) }
 
     // Estados para la animación del sprite
-    var spriteActivo by remember { mutableStateOf(1) }
+    var spriteActivo by remember { mutableStateOf(0) }
     var animando by remember { mutableStateOf("no") }
     var frameIndex by remember { mutableStateOf(0) }
     //Ajustes del sprite animado
     val spriteFront = listOf(R.drawable.f_04, R.drawable.f_03, R.drawable.f_02, R.drawable.f_01)
     val spriteTurn = listOf(R.drawable.t_04, R.drawable.t_03, R.drawable.t_02, R.drawable.t_01)
-    val frames = if (spriteActivo == 1) spriteFront else spriteTurn
+    val frames = if (spriteActivo == 0) spriteFront else spriteTurn
+    var turning by remember { mutableStateOf(false) }
+
+    turning = (spriteActivo == 2) //turning se vuelve true sólo si el sprite activo es el 2 (derecha)
 
     // Lógica para la animación en bucle
     LaunchedEffect(animando) {
@@ -159,6 +163,7 @@ fun ButtonRow() {
                 painter = painterResource(id = frames[frameIndex]),
                 contentDescription = null,
                 modifier = Modifier.size(charSize)
+                    .graphicsLayer { scaleX = if (turning) -1f else 1f } // Voltea la imagen si 'volteado' es true
             )
 
         }
@@ -206,11 +211,11 @@ fun ButtonRow() {
             }
 
             Row (horizontalArrangement = Arrangement.SpaceBetween){
-                CustomButton("<=", { giroIzq {lft -> boton_2 = lft} },
-                    { soltarVolante {svt -> boton_2 = svt} },
+                CustomButton("<=", { giroIzq( imgSetter = {lft -> boton_2 = lft} , sprSetter = {lft -> spriteActivo = lft} )},
+                    { soltarVolante(imgSetter =  {svt -> boton_2 = svt} , sprSetter = {frn -> spriteActivo = frn} )},
                     buttonSize,"Hor")
-                CustomButton("=>", { giroDer {rgt -> boton_2 = rgt} },
-                    { soltarVolante {svt -> boton_2 = svt} },
+                CustomButton("=>", { giroDer ( imgSetter = {rgt -> boton_2 = rgt} , sprSetter = {rgt -> spriteActivo = rgt} ) },
+                    { soltarVolante(imgSetter =  {svt -> boton_2 = svt} , sprSetter = {frn -> spriteActivo = frn} ) },
                     buttonSize,"Hor")
 
             }
@@ -240,9 +245,10 @@ fun CustomButton( //Estos botones personalizados reciben los siguientes parámet
     button_mode: String,
     modifier: Modifier = Modifier
 ) {
-    var isPressed by remember { mutableStateOf(false)}
-    val h_ratio = if (button_mode == "Hor") 0.5f else 1.0f
-    val v_ratio = if (button_mode == "Ver") 0.5f else 1.0f
+    var isPressed by remember { mutableStateOf(false)} //Variable para saber si se está presioando el botón
+
+    val h_ratio = if (button_mode == "Hor") 0.5f else 1.0f //Esto ayuda a comodar los botones en filas y columnas manteniendo un tamaño equitativo en un cuadrado.
+    val v_ratio = if (button_mode == "Ver") 0.5f else 1.0f //Es decir, podremos tener 2 botones horizontales en una fila, o 2 botones verticales en una columna, haciendo que ambos juntos formen un cuadrado perfecto
 
 
     Box (
@@ -250,15 +256,18 @@ fun CustomButton( //Estos botones personalizados reciben los siguientes parámet
             .size(width = size * h_ratio, height = size * v_ratio)
             .pointerInput(Unit) {
                 detectTapGestures(
-                    onPress = { //Secuencia de precionado
-                        isPressed = true    //Se presiona el boton
-                        onPress()           //Se ejecuta función onpress
-                        tryAwaitRelease()   //Espera a que el botón se suelte
-                        isPressed = false   //El botón deja de presionarse
-                        onRelease()         //Ejecuta función onrelease
+                    onPress = { offset ->
+                        isPressed = true
+                        onPress()
+                        tryAwaitRelease()
+                        isPressed = false
+                        onRelease()
                     }
+
                 )
-            }, contentAlignment =  Alignment.Center
+            }
+
+        , contentAlignment =  Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
 
@@ -270,7 +279,7 @@ fun CustomButton( //Estos botones personalizados reciben los siguientes parámet
             )
         }
         Text(
-            //El texto sólo es visible para motivos de testing, con la UI ya no es necesario
+            //El texto sólo era visible para motivos de testing, con la UI ya no es necesario
             /*
             text = text,
             color = Color.White,
@@ -301,17 +310,20 @@ fun reversa(imgSetter: (Int)->Unit, animSetter: (String) -> Unit) {
 }
 
 // BOTON 2
-fun giroIzq(imgSetter: (Int)->Unit) {
+fun giroIzq(imgSetter: (Int)->Unit, sprSetter: (Int) -> Unit) {
     imgSetter(R.drawable.lr_2)
+    sprSetter(1) //Valores de sprite activo: 0 FRENTE, 1 IZQ, 2 DER
     Log.d("ACTION","Girando a la izquierda ...")
 }
 
-fun giroDer(imgSetter: (Int)->Unit) {
+fun giroDer(imgSetter: (Int)->Unit, sprSetter: (Int) -> Unit) {
     imgSetter(R.drawable.lr_1)
+    sprSetter(2) //Valores de sprite activo: 0 FRENTE, 1 IZQ, 2 DER
     Log.d("ACTION","Girando a la derecha ...")
 }
 
-fun soltarVolante(imgSetter: (Int)->Unit) {
+fun soltarVolante(imgSetter: (Int)->Unit, sprSetter: (Int) -> Unit) {
     imgSetter(R.drawable.lr_0)
+    sprSetter(0) //Valores de sprite activo: 0 FRENTE, 1 IZQ, 2 DER
     Log.d("ACTION","Yendo derecho ...")
 }
