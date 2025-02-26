@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">Carrito_01</string>
+    <string name="app_name">Carrito Macuin</string>
+    <string name="play">Jugar</string>
+    <string name="settings">Configuracion</string>
 </resources>
