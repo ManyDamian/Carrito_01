@@ -16,7 +16,7 @@
         <activity
             android:name=".MenuActivity"
             android:exported="true"
-            android:theme="@style/Theme.Carrito_01"
+            android:theme="@style/Theme.AppCompat.DayNight"
             tools:ignore="DiscouragedApi">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -33,7 +33,8 @@
             tools:ignore="DiscouragedApi">
 
         </activity>
-        <!-- <activity android:name=".SettingsActivity" /> -->
+        <activity android:name=".SettingsActivity"
+            android:theme="@style/Theme.AppCompat.DayNight" />
 
     </application>
     <uses-permission-sdk-23 android:name="android.permission.CAMERA" />

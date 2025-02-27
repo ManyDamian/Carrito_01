@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+         <!-- Grupo de configuración de colores -->
+    <PreferenceCategory
+        android:textColor="#00796B"
+        android:title= "@string/settings"
+        />
+
+    <PreferenceCategory
+
+        android:textColor="#00796B"
+        android:title="@string/uilook">
+
+        <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="enable_custom_colors"
+            android:title="@string/customcolor" />
+
+        <SeekBarPreference
+            android:defaultValue="128"
+            android:dependency="enable_custom_colors"
+            android:key="color_red"
+            android:max="255"
+            android:title="@string/red" />
+
+        <SeekBarPreference
+            android:defaultValue="128"
+            android:dependency="enable_custom_colors"
+            android:key="color_green"
+            android:max="255"
+            android:title="@string/green" />
+
+        <SeekBarPreference
+            android:defaultValue="128"
+            android:dependency="enable_custom_colors"
+            android:key="color_blue"
+            android:max="255"
+            android:title="@string/blue" />
+    </PreferenceCategory>
+
+        <!-- Grupo de configuración de fondo -->
+    <PreferenceCategory
+        android:textColor="#00796B"
+        android:title="@string/bg">
+
+        <ListPreference
+            android:defaultValue="default"
+            android:entries="@array/background_colors"
+            android:entryValues="@array/background_color_values"
+            android:key="background_color"
+            android:title="@string/bgcolor" />
+    </PreferenceCategory>
+
+        <!-- Grupo de configuración del perfil -->
+    <PreferenceCategory
+        android:textColor="#00796B"
+        android:title="@string/user">
+
+        <EditTextPreference
+            android:defaultValue="Usuario"
+            android:dialogTitle="Ingrese su nombre de usuario"
+            android:key="username"
+            android:title="@string/username" />
+
+        <Preference
+            android:key="profile_picture"
+            android:summary="@string/changepp"
+            android:title="@string/ppic" />
+    </PreferenceCategory>
+
+    </PreferenceScreen>

@@ -18,7 +18,7 @@ class MenuActivity : AppCompatActivity() {
 
         btnSettings.setOnClickListener {
             //Aqui pondremos el rediccionamiento a settings
-            //startActivity(Intent(this, SettingsActivity::class.java))
+            startActivity(Intent(this, SettingsActivity::class.java))
         }
     }
 }
