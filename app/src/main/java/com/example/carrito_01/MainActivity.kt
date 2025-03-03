@@ -52,7 +52,51 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 
+import okhttp3.*
+
+
+//========== CLASE WEBSOCKET =========== CONEXION AL ESP32 POR UN WEBSOCKET
+class WebSocketClient(url: String) {
+    private val client = OkHttpClient()
+    private val request = Request.Builder().url(url).build()
+    private var webSocket: WebSocket? = null  // Guardar la conexión
+
+    private val listener = object : WebSocketListener() {
+        override fun onOpen(ws: WebSocket, response: Response) {
+            println("✅ Conectado al WebSocket")
+            webSocket = ws // Guardar la conexión activa
+        }
+
+        override fun onMessage(ws: WebSocket, text: String) {
+            println("📩 Mensaje recibido: $text")
+        }
+
+        override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
+            println("❌ Error en WebSocket: ${t.message}")
+        }
+    }
+
+    fun connect() {
+        webSocket = client.newWebSocket(request, listener)
+    }
+
+    fun sendMessage(message: String) {
+        webSocket?.send(message) ?: println("⚠ No hay conexión WebSocket")
+    }
+
+    fun close() {
+        webSocket?.close(1000, "Cierre normal")
+    }
+}
+
+
+// Asignamos el wsClient como objeto público
+val wsClient = WebSocketClient("ws://192.168.100.66:80")
+
+//========== CLASE PRINCIPAL =============
 class MainActivity : ComponentActivity() {
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -70,6 +114,8 @@ class MainActivity : ComponentActivity() {
             != PackageManager.PERMISSION_GRANTED) {
             requestPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
+        // CONEXIÓN CON EL WEBSOCKET
+        wsClient.connect()
 
         setContent {
             CameraScreen()
@@ -173,8 +219,8 @@ fun ButtonRow() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .align(Alignment.Center)
-                .padding(30.dp),
+                .align(Alignment.BottomCenter)
+                .padding(45.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             // BOTON 1
@@ -196,8 +242,8 @@ fun ButtonRow() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .align(Alignment.Center)
-                .padding(30.dp),
+                .align(Alignment.BottomCenter)
+                .padding(45.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(){       //Los custombuttoms se complicaron un poco, pero en resumen: texto, { funcion onpress( {logica boton},{logica animacion} }, { funcion onrelease (lomismo)} }, tamaño de boton, modo de boton
@@ -295,17 +341,23 @@ fun CustomButton( //Estos botones personalizados reciben los siguientes parámet
 fun acelerar(imgSetter: (Int)->Unit, animSetter: (String) -> Unit)  {
     imgSetter(R.drawable.ud_1) //Cambiamos el estado del boton
     animSetter("si") //Activamos la animación del personaje
+
+    wsClient.sendMessage("s1_open")
     Log.d("ACTION","Acelerando...")
 }
 
 fun frenar(imgSetter: (Int)->Unit, animSetter: (String) -> Unit) {
     imgSetter(R.drawable.ud_0)
     animSetter("no") //Desactivamos la animación del personaje
+
+    wsClient.sendMessage("s1_close")
     Log.d("ACTION","Frenando...")
 }
 fun reversa(imgSetter: (Int)->Unit, animSetter: (String) -> Unit) {
     imgSetter(R.drawable.ud_2)
     animSetter("rev") //Activamos la animación del personaje, pero en reversa
+
+    wsClient.sendMessage("s1_open")
     Log.d("ACTION","De reversa...")
 }
 
@@ -313,17 +365,24 @@ fun reversa(imgSetter: (Int)->Unit, animSetter: (String) -> Unit) {
 fun giroIzq(imgSetter: (Int)->Unit, sprSetter: (Int) -> Unit) {
     imgSetter(R.drawable.lr_2)
     sprSetter(1) //Valores de sprite activo: 0 FRENTE, 1 IZQ, 2 DER
+
+    wsClient.sendMessage("s2_open")
     Log.d("ACTION","Girando a la izquierda ...")
 }
 
 fun giroDer(imgSetter: (Int)->Unit, sprSetter: (Int) -> Unit) {
     imgSetter(R.drawable.lr_1)
     sprSetter(2) //Valores de sprite activo: 0 FRENTE, 1 IZQ, 2 DER
+
+    wsClient.sendMessage("s2_open")
     Log.d("ACTION","Girando a la derecha ...")
 }
 
 fun soltarVolante(imgSetter: (Int)->Unit, sprSetter: (Int) -> Unit) {
     imgSetter(R.drawable.lr_0)
     sprSetter(0) //Valores de sprite activo: 0 FRENTE, 1 IZQ, 2 DER
+
+    wsClient.sendMessage("s2_close")
     Log.d("ACTION","Yendo derecho ...")
 }
+
