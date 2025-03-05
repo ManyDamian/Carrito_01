@@ -281,7 +281,7 @@ fun ButtonRow() {
             Canvas(modifier = Modifier.fillMaxSize()) {
 
                 drawRoundRect(
-                    color = Color.hsl(0f,1f,0.6f,0.3f),
+                    color = Color.hsl(0f,0f,1.0f,0.5f),
                     cornerRadius = CornerRadius(100f,100f)
 
                 )
