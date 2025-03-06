@@ -151,6 +151,8 @@ fun CameraScreen() {
     }
 }
 
+
+
 @Composable
 fun ButtonRow() {
     // Estado inicial de los botones
@@ -267,6 +269,54 @@ fun ButtonRow() {
             }
 
         }
+
+        //=== BARRA DE ESTADO ===
+        Box(
+            modifier = Modifier
+                .size(width = maxWidth*.7f, height = 140.dp)
+                .align(Alignment.TopCenter)
+                .padding(25.dp),
+            contentAlignment =  Alignment.CenterStart
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+
+                drawRoundRect(
+                    color = Color.hsl(0f,0f,1.0f,0.5f),
+                    cornerRadius = CornerRadius(100f,100f)
+
+                )
+            }
+
+            Row (horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.padding(horizontal = 25.dp)
+                        .fillMaxWidth()
+                        .align(Alignment.Center) ){
+                Text(
+                    //Texto para la información que vamos a tener
+                    text = "0.5 m/s",
+                    color = Color.Black,
+                    fontSize = 40.sp
+                )
+
+                Image(
+                    painter = painterResource(R.drawable.baseline_camera_alt_24),
+                    contentDescription = null,
+                    modifier = Modifier.size(50.dp)
+                )
+
+                Text(
+                    //Texto para la información que vamos a tener
+                    text = "ping: 02ms",
+                    color = Color.Black,
+                    fontSize = 25.sp,
+                    modifier= Modifier.padding(vertical = 10.dp)
+                )
+
+            }
+
+        }
+
+
     }
 }
 
