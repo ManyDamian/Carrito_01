@@ -50,6 +50,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import kotlinx.coroutines.delay
 
 import okhttp3.*
@@ -100,6 +102,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+
         // Solicitar permiso de cámara en tiempo de ejecución
         val requestPermissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -118,10 +121,18 @@ class MainActivity : ComponentActivity() {
         wsClient.connect()
 
         setContent {
+            val windowInsetsController =
+                WindowCompat.getInsetsController(window, window.decorView)
+            // Escondemos la barra de navegacion.
+            windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+
+
             CameraScreen()
         }
     }
 }
+
+
 
 @Composable
 fun CameraScreen() {

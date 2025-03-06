@@ -29,6 +29,7 @@
 <!-- android:screenOrientation="landscape" --> <!-- Agregar esto si queremos volver a fijar la pantalla horizontalmente. -->
         <activity
             android:name=".MainActivity"
+
             android:exported="true"
             android:screenOrientation="landscape"
             android:theme="@style/Theme.Carrito_01"
