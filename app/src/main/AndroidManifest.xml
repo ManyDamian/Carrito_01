@@ -18,7 +18,7 @@
         <activity
             android:name=".MenuActivity"
             android:exported="true"
-            android:theme="@style/Theme.AppCompat.DayNight"
+            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
             tools:ignore="DiscouragedApi">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
