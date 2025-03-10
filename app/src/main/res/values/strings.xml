@@ -1,3 +1,23 @@
 <resources>
-    <string name="app_name">Carrito_01</string>
+    <string name="app_name">Carrito Macuin</string>
+    <string name="play">Jugar</string>
+    <string name="settings">Configuracion</string>
+
+    <string name="uilook">Apariencia</string>
+    <string name="customcolor">Usar colores personalizados</string>
+    <string name="red">Rojo</string>
+    <string name="green">Verde</string>
+    <string name="blue">Azul</string>
+
+    <string name="bg">Fondo</string>
+    <string name="bgcolor">Color de fondo</string>
+    <string name="bgimage">Imagen de fondo</string>
+
+    <string name="user">Perfil</string>
+    <string name="username">Nombre de usuario</string>
+    <string name="ppic">Foto de perfil</string>
+    <string name="changepp">Cambiar foto de perfil</string>
+
+
+
 </resources>
