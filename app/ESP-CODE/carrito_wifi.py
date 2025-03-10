@@ -4,10 +4,10 @@ import uasyncio as asyncio
 import ubinascii
 import struct
 import hashlib  # Importar hashlib
-
 from machine import Pin, PWM
-
+import camera
 import time
+
 
 # Pines de los servos
 servo1 = PWM(Pin(2), freq=50)   # Servo para mover izquierda/derecha
@@ -52,18 +52,24 @@ def car_functions(msg):
     elif msg == "LED_OFF":
         return "Apagando LED"
     
-    elif msg == "s1_open":
-        move_servo(servo1, 180)
-        return "Abriendo servo 1"
-    elif msg == "s1_close":
-        move_servo(servo1, 90)
-        return "Cerrando servo 1"
-    elif msg == "s2_open":
-        move_servo(servo2, 180)
-        return "Abriendo servo 2"
-    elif msg == "s2_close":
-        move_servo(servo2, 90)
-        return "Cerrando servo 2"
+    elif msg == "ACELERA":
+        #move_servo(servo1, 180)
+        return "Acelerando ..."
+    elif msg == "FRENA":
+        #move_servo(servo1, 90)
+        return "Frenando ..."
+    elif msg == "REVERSA":
+        #move_servo(servo1, 90)
+        return "De reversa ..."
+    elif msg == "IZQUIERDA":
+        #move_servo(servo2, 180)
+        return "Giro a la izquierda..."
+    elif msg == "DERECHA":
+        #move_servo(servo2, 90)
+        return "Giro a la derecha ..."
+    elif msg == "SOLTAR":
+        #move_servo(servo2, 90)
+        return "Soltando volante ..."
 
 # Función para manejar la conexión WebSocket
 async def handle_client(reader, writer):
@@ -136,9 +142,47 @@ async def handle_client(reader, writer):
         writer.close()
         await writer.wait_closed()
 
+# Servidor de Streaming de Video
+async def stream_handler(reader, writer):
+    try:
+        request = await reader.read(1024)
+        headers = request.decode().split("\r\n")
+        
+        if "GET /stream" not in headers[0]:
+            writer.close()
+            await writer.wait_closed()
+            return
+        
+        response = (
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: multipart/x-mixed-replace; boundary=frame\r\n\r\n"
+        )
+        writer.write(response.encode())
+        await writer.drain()
+
+        print("Cliente conectado al streaming")
+
+        while True:
+            frame = camera.capture()
+            if frame:
+                writer.write(
+                    b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
+                )
+                await writer.drain()
+
+    except Exception as e:
+        print(f"Error en streaming: {e}")
+
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+
+
 # Servidor WebSocket sin serve_forever()
 async def start_server():
-    server = await asyncio.start_server(handle_client, ip, 80)
+    asyncio.create_task(asyncio.start_server(handle_client, ip, 80))
+    asyncio.create_task(asyncio.start_server(stream_handler, ip, 81))
     print("Servidor WebSocket corriendo en:", ip)
     
     # Mantener el servidor corriendo manualmente
@@ -148,35 +192,3 @@ async def start_server():
 asyncio.run(start_server())
 
     
-"""
-    if 'GET /move_servo' in request:
-        if '?' in request:
-            params = request.split(' ')[1].split('?')[1].split('&')
-            for param in params:
-                name, value = param.split('=')
-                if name == 'servo1':
-                    if value == 'left':
-                        servo1_angle = max(0, servo1_angle - 20)  # Mover a la izquierda más rápido
-                    elif value == 'right':
-                        servo1_angle = min(180, servo1_angle + 20)  # Mover a la derecha más rápido
-                    move_servo(servo1, servo1_angle)
-                elif name == 'servo2':
-                    if value == 'up':
-                        servo2_angle = max(0, servo2_angle - 20)  # Mover hacia arriba más rápido
-                    elif value == 'down':
-                        servo2_angle = min(180, servo2_angle + 20)  # Mover hacia abajo más rápido
-                    move_servo(servo2, servo2_angle)
-                elif name == 'servo3':
-                    if value == 'close':
-                        servo3_angle = 0  # Cerrar mano
-                    elif value == 'open':
-                        servo3_angle = 90  # Abrir mano
-                    move_servo(servo3, servo3_angle)
-
-    response = web_page()
-    cl.send('HTTP/1.1 200 OK\n')
-    cl.send('Content-Type: text/html\n')
-    cl.send('Connection: close\n\n')
-    cl.sendall(response)
-    cl.close()
-"""
