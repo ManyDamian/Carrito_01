@@ -7,6 +7,9 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.CalendarContract.Colors
 import android.util.Log
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -29,7 +32,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,15 +50,17 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import kotlinx.coroutines.delay
-
+import android.webkit.WebViewClient
 import okhttp3.*
 
 
@@ -93,7 +100,8 @@ class WebSocketClient(url: String) {
 
 
 // Asignamos el wsClient como objeto público
-val wsClient = WebSocketClient("ws://192.168.100.66:80")
+val conIP = "192.168.100.9" //IP DEL SOCKET
+val wsClient = WebSocketClient("ws://$conIP:80")
 
 //========== CLASE PRINCIPAL =============
 class MainActivity : ComponentActivity() {
@@ -121,19 +129,51 @@ class MainActivity : ComponentActivity() {
         wsClient.connect()
 
         setContent {
+
             val windowInsetsController =
                 WindowCompat.getInsetsController(window, window.decorView)
             // Escondemos la barra de navegacion.
             windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
 
 
-            CameraScreen()
+            //CameraScreen()
+            ESP32CamScreen(conIP)
         }
     }
 }
 
+// === PANTALLA DE LA TRANSMISION CON LA INTERFAZ ENCIMA====
+@Composable
+fun ESP32CamScreen(ip: String) {
+    val streamUrl = "http://$ip:5000/stream"
 
 
+    Box(modifier = Modifier.fillMaxSize()) { //Fondo con la vista de la cámara
+
+        MJPEGStream(streamUrl)
+
+        ButtonRow() //Interfaz tactil de los botones
+    }
+
+
+}
+// ====== CONEXIÓN A LA TRANSMISION ======
+@Composable
+fun MJPEGStream(url: String) {
+    AndroidView(
+        factory = { context ->
+            WebView(context).apply {
+                settings.javaScriptEnabled = true
+                settings.cacheMode = WebSettings.LOAD_NO_CACHE
+                webViewClient = WebViewClient()
+                loadUrl(url)
+            }
+        },
+        modifier = Modifier.fillMaxSize()
+    )
+}
+
+// ======= RESTO DE CÓDIGO ====
 @Composable
 fun CameraScreen() {
     val context = LocalContext.current
@@ -337,6 +377,7 @@ fun ButtonRow() {
 @Preview(showBackground = true, widthDp = 960, heightDp = 432) //para una resolución 2400 x 1080, los dp son 960 x 432
 @Composable
 fun PreviewButtonRow() {
+
     ButtonRow()
 }
 
@@ -403,7 +444,7 @@ fun acelerar(imgSetter: (Int)->Unit, animSetter: (String) -> Unit)  {
     imgSetter(R.drawable.ud_1) //Cambiamos el estado del boton
     animSetter("si") //Activamos la animación del personaje
 
-    wsClient.sendMessage("s1_open")
+    wsClient.sendMessage("ACELERA")
     Log.d("ACTION","Acelerando...")
 }
 
@@ -411,14 +452,14 @@ fun frenar(imgSetter: (Int)->Unit, animSetter: (String) -> Unit) {
     imgSetter(R.drawable.ud_0)
     animSetter("no") //Desactivamos la animación del personaje
 
-    wsClient.sendMessage("s1_close")
+    wsClient.sendMessage("FRENA")
     Log.d("ACTION","Frenando...")
 }
 fun reversa(imgSetter: (Int)->Unit, animSetter: (String) -> Unit) {
     imgSetter(R.drawable.ud_2)
     animSetter("rev") //Activamos la animación del personaje, pero en reversa
 
-    wsClient.sendMessage("s1_open")
+    wsClient.sendMessage("REVERSA")
     Log.d("ACTION","De reversa...")
 }
 
@@ -427,7 +468,7 @@ fun giroIzq(imgSetter: (Int)->Unit, sprSetter: (Int) -> Unit) {
     imgSetter(R.drawable.lr_2)
     sprSetter(1) //Valores de sprite activo: 0 FRENTE, 1 IZQ, 2 DER
 
-    wsClient.sendMessage("s2_open")
+    wsClient.sendMessage("IZQUIERDA")
     Log.d("ACTION","Girando a la izquierda ...")
 }
 
@@ -435,7 +476,7 @@ fun giroDer(imgSetter: (Int)->Unit, sprSetter: (Int) -> Unit) {
     imgSetter(R.drawable.lr_1)
     sprSetter(2) //Valores de sprite activo: 0 FRENTE, 1 IZQ, 2 DER
 
-    wsClient.sendMessage("s2_open")
+    wsClient.sendMessage("DERECHA")
     Log.d("ACTION","Girando a la derecha ...")
 }
 
@@ -443,7 +484,7 @@ fun soltarVolante(imgSetter: (Int)->Unit, sprSetter: (Int) -> Unit) {
     imgSetter(R.drawable.lr_0)
     sprSetter(0) //Valores de sprite activo: 0 FRENTE, 1 IZQ, 2 DER
 
-    wsClient.sendMessage("s2_close")
+    wsClient.sendMessage("SOLTAR")
     Log.d("ACTION","Yendo derecho ...")
 }
 
