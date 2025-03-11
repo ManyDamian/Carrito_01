@@ -17,8 +17,8 @@ def init_camera(max_retries=5, retry_delay=1):
             print(f"📷 Intento {i+1}/{max_retries} de inicializar cámara...")
             
             camera.init(0, format=camera.JPEG)
-            camera.framesize(camera.FRAME_QVGA)  # Baja calidad para ahorrar RAM
-            camera.quality(20)
+            camera.framesize(camera.FRAME_96X96)  # Baja calidad para ahorrar RAM
+            camera.quality(30)
             camera.speffect(camera.EFFECT_NONE)  # Sin efectos
             camera.whitebalance(camera.WB_NONE)  # Sin balance de blancos automático
             camera.contrast(0)  # Contraste normal
@@ -231,20 +231,37 @@ async def stream_handler(reader, writer):
         writer.write(response.encode())
         await writer.drain()
 
-        print("Cliente conectado al streaming")
+        print("🎥 Cliente conectado al streaming")
 
         while True:
             frame = camera.capture()
             if frame:
-                writer.write(
-                    b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
-                )
-                await writer.drain()
+                try:
+                    writer.write(
+                        b"--frame\r\n"
+                        b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
+                    )
+                    await writer.drain()
+                    print("📸 Imagen enviada")
+                except Exception as e:
+                    print(f"❌ Error enviando imagen: {e}")
+                    break  # Salir del bucle si el cliente se desconecta
+                
+                del frame  # Liberar memoria
+
+            else:
+                print("⚠️ No se pudo capturar imagen, reintentando...")
+                camera.deinit()
+                time.sleep(1)
+                camera.init(0, format=camera.JPEG)
+
+            await asyncio.sleep(0.02)  # Pequeña pausa para evitar sobrecarga
 
     except Exception as e:
-        print(f"Error en streaming: {e}")
+        print(f"❌ Error en streaming: {e}")
 
     finally:
+        print("🔌 Cliente desconectado del streaming")
         writer.close()
         await writer.wait_closed()
 
@@ -267,5 +284,9 @@ async def start_server():
     while True:
         await asyncio.sleep(1)
 
-asyncio.run(start_server())
+async def main():
+    asyncio.create_task(start_server())  # WebSocket y Streaming corriendo en paralelo
+    while True:
+        await asyncio.sleep(1)
 
+asyncio.run(main())
