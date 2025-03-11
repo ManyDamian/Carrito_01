@@ -4,48 +4,118 @@ import uasyncio as asyncio
 import ubinascii
 import struct
 import hashlib  # Importar hashlib
-from machine import Pin, PWM
+import machine
 import camera
 import time
 
+# Esperar un poco antes de conectar
+time.sleep(2)
 
-# Pines de los servos
-servo1 = PWM(Pin(2), freq=50)   # Servo para mover izquierda/derecha
-servo2 = PWM(Pin(4), freq=50)   # Servo para mover arriba/abajo
-servo3 = PWM(Pin(13), freq=50)  # Servo para abrir/cerrar la mano
+def init_camera(max_retries=5, retry_delay=1):
+    for i in range(max_retries):
+        try:
+            print(f"📷 Intento {i+1}/{max_retries} de inicializar cámara...")
+            
+            camera.init(0, format=camera.JPEG)
+            camera.framesize(camera.FRAME_QVGA)  # Baja calidad para ahorrar RAM
+            camera.quality(20)
+            camera.speffect(camera.EFFECT_NONE)  # Sin efectos
+            camera.whitebalance(camera.WB_NONE)  # Sin balance de blancos automático
+            camera.contrast(0)  # Contraste normal
+            camera.brightness(0)  # Brillo normal
+            camera.saturation(0)  # Saturación normal
+            print("✅ Cámara inicializada correctamente.")
+            return True
+        except Exception as e:
+            print(f"⚠️ Error en la cámara: {e}")
+            camera.deinit()  # Apagar y volver a intentar
+            time.sleep(retry_delay)
 
-# Función para mover servos
-def move_servo(servo, angle):
-    duty = int((angle / 180) * 75 + 40)
-    duty = max(40, min(duty, 115))  # Asegura que el valor esté dentro del rango
-    servo.duty(duty)
+    print("❌ No se pudo inicializar la cámara.")
+    return False
 
-# Mover los servos a posición inicial
-move_servo(servo1, 90)  # Posición media para izquierda/derecha
-move_servo(servo2, 0)  # Posición media para arriba/abajo
-move_servo(servo3, 90)  # Mano abierta
+
+# 🚗 Pines del TB6612FNG
+MOTOR_A1 = machine.Pin(13, machine.Pin.OUT)
+MOTOR_A2 = machine.Pin(2, machine.Pin.OUT)
+PWM_A = machine.PWM(machine.Pin(12))
+MOTOR_B1 = machine.Pin(15, machine.Pin.OUT)
+MOTOR_B2 = machine.Pin(14, machine.Pin.OUT)
+PWM_B = machine.PWM(machine.Pin(12))
+
+PWM_A.freq(5000)
+PWM_B.freq(5000)
 
 # Conexión Wi-Fi
+#ssid = "TP-Link_A1C7"
+#password = "61307315"
+
 ssid = 'Totalplay-D1AA'  # Cambia por el nombre de tu red Wi-Fi
 password = 'TOTAL_PLAYc99'  # Cambia por la contraseña de tu red
 
 station = network.WLAN(network.STA_IF)
 station.active(True)
-station.connect(ssid, password)
+time.sleep(1)
 
-# Esperar hasta que se conecte
-while not station.isconnected():
-    time.sleep(1)
+# Intentar conectarse con reintentos
+max_retries = 10
+for i in range(max_retries):
+    print(f"🔄 Intento {i+1}/{max_retries} de conexión a WiFi...")
+    station.connect(ssid, password)
+    
+    for _ in range(5):  # Esperar hasta 5 segundos en cada intento
+        if station.isconnected():
+            print("✅ Conectado a WiFi")
+            break
+        time.sleep(1)
+    
+    if station.isconnected():
+        break
+else:
+    print("❌ No se pudo conectar a WiFi.")
     
 ip = station.ifconfig()[0]
 
 print(f"Conectado, IP: {ip}")
 
-# Estado inicial de los servos
-servo1_angle = 90  # Posición inicial media
-servo2_angle = 90  # Posición inicial media
-servo3_angle = 90  # Mano abierta
 
+
+# 🚗 Funciones para mover el carrito
+def adelante():
+    MOTOR_A1.on()
+    MOTOR_A2.off()
+    PWM_A.duty(800)
+
+def atras():
+    MOTOR_A1.off()
+    MOTOR_A2.on()
+    PWM_A.duty(800)
+    
+def frenar():
+    MOTOR_A1.off()
+    MOTOR_A2.off()
+    PWM_A.duty(0)
+
+def izquierda():
+    MOTOR_B1.on()
+    MOTOR_B2.off()
+    PWM_B.duty(512)
+
+def derecha():
+    MOTOR_B1.off()
+    MOTOR_B2.on()
+    PWM_B.duty(512)
+
+def soltar():    
+    MOTOR_B1.off()
+    MOTOR_B2.off()    
+    PWM_B.duty(0)
+
+# === SETTING INICIAL ===
+soltar()
+frenar()
+
+# ==== FUNCIONES WEBSOCKET =======
 def car_functions(msg):
     if msg == "LED_ON":
         return "Encendiendo LED"
@@ -53,23 +123,24 @@ def car_functions(msg):
         return "Apagando LED"
     
     elif msg == "ACELERA":
-        #move_servo(servo1, 180)
+        adelante()
         return "Acelerando ..."
     elif msg == "FRENA":
-        #move_servo(servo1, 90)
+        frenar()
         return "Frenando ..."
     elif msg == "REVERSA":
-        #move_servo(servo1, 90)
+        atras()
         return "De reversa ..."
     elif msg == "IZQUIERDA":
-        #move_servo(servo2, 180)
+        izquierda()
         return "Giro a la izquierda..."
     elif msg == "DERECHA":
-        #move_servo(servo2, 90)
+        derecha()
         return "Giro a la derecha ..."
     elif msg == "SOLTAR":
-        #move_servo(servo2, 90)
+        soltar()
         return "Soltando volante ..."
+
 
 # Función para manejar la conexión WebSocket
 async def handle_client(reader, writer):
@@ -181,14 +252,20 @@ async def stream_handler(reader, writer):
 
 # Servidor WebSocket sin serve_forever()
 async def start_server():
-    asyncio.create_task(asyncio.start_server(handle_client, ip, 80))
-    asyncio.create_task(asyncio.start_server(stream_handler, ip, 81))
-    print("Servidor WebSocket corriendo en:", ip)
-    
-    # Mantener el servidor corriendo manualmente
+    try:
+        asyncio.create_task(asyncio.start_server(handle_client, ip, 80))
+        print("✅ WebSocket escuchando en ws://{}:80".format(ip))
+    except Exception as e:
+        print("❌ Error iniciando WebSocket:", e)
+
+    try:
+        asyncio.create_task(asyncio.start_server(stream_handler, ip, 8080))
+        print("✅ Streaming escuchando en http://{}:8080".format(ip))
+    except Exception as e:
+        print("❌ Error iniciando Streaming:", e)
+
     while True:
         await asyncio.sleep(1)
 
 asyncio.run(start_server())
 
-    

@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.CalendarContract.Colors
 import android.util.Log
+import android.view.ViewGroup
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.widget.Toast
@@ -100,7 +101,7 @@ class WebSocketClient(url: String) {
 
 
 // Asignamos el wsClient como objeto público
-val conIP = "192.168.100.9" //IP DEL SOCKET
+val conIP = "192.168.100.71" //IP DEL SOCKET
 val wsClient = WebSocketClient("ws://$conIP:80")
 
 //========== CLASE PRINCIPAL =============
@@ -145,8 +146,7 @@ class MainActivity : ComponentActivity() {
 // === PANTALLA DE LA TRANSMISION CON LA INTERFAZ ENCIMA====
 @Composable
 fun ESP32CamScreen(ip: String) {
-    val streamUrl = "http://$ip:5000/stream"
-
+    val streamUrl = "http://$ip:8080/stream"
 
     Box(modifier = Modifier.fillMaxSize()) { //Fondo con la vista de la cámara
 
@@ -160,12 +160,18 @@ fun ESP32CamScreen(ip: String) {
 // ====== CONEXIÓN A LA TRANSMISION ======
 @Composable
 fun MJPEGStream(url: String) {
+
     AndroidView(
         factory = { context ->
             WebView(context).apply {
+
                 settings.javaScriptEnabled = true
                 settings.cacheMode = WebSettings.LOAD_NO_CACHE
                 webViewClient = WebViewClient()
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
                 loadUrl(url)
             }
         },
@@ -181,6 +187,7 @@ fun CameraScreen() {
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
 
     Box(modifier = Modifier.fillMaxSize()) { //Fondo con la vista de la cámara
+
         AndroidView(
             factory = { AndroidViewContext ->
                 val previewView = PreviewView(AndroidViewContext)
