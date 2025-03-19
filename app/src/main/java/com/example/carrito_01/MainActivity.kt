@@ -2,9 +2,13 @@ package com.example.carrito_01
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.provider.CalendarContract.Colors
 import android.util.Log
 import android.view.ViewGroup
@@ -62,6 +66,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import kotlinx.coroutines.delay
 import android.webkit.WebViewClient
+import androidx.fragment.app.Fragment
 import okhttp3.*
 
 
@@ -101,8 +106,10 @@ class WebSocketClient(url: String) {
 
 
 // Asignamos el wsClient como objeto público
-val conIP = "192.168.100.71" //IP DEL SOCKET
+val conIP = "192.168.1.127" //IP DEL SOCKET
 val wsClient = WebSocketClient("ws://$conIP:80")
+
+
 
 //========== CLASE PRINCIPAL =============
 class MainActivity : ComponentActivity() {
@@ -111,21 +118,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-
-        // Solicitar permiso de cámara en tiempo de ejecución
-        val requestPermissionLauncher =
-            registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-                if (!isGranted) {
-                    // Manejo si el permiso no es otorgado
-                    finish()
-                }
-            }
-
-        // Verificar permiso
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            != PackageManager.PERMISSION_GRANTED) {
-            requestPermissionLauncher.launch(Manifest.permission.CAMERA)
-        }
         // CONEXIÓN CON EL WEBSOCKET
         wsClient.connect()
 
@@ -180,39 +172,11 @@ fun MJPEGStream(url: String) {
 }
 
 // ======= RESTO DE CÓDIGO ====
-@Composable
-fun CameraScreen() {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
-
-    Box(modifier = Modifier.fillMaxSize()) { //Fondo con la vista de la cámara
-
-        AndroidView(
-            factory = { AndroidViewContext ->
-                val previewView = PreviewView(AndroidViewContext)
-                val cameraProvider = cameraProviderFuture.get()
-
-                val preview = CameraPreview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
-                }
-
-                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-                cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview)
-                previewView
-            },
-            modifier = Modifier.fillMaxSize()
-        )
-
-        ButtonRow() //Interfaz tactil de los botones
-    }
-}
-
 
 
 @Composable
 fun ButtonRow() {
+
     // Estado inicial de los botones
     var boton_1 by remember { mutableStateOf(R.drawable.ud_0) }
     var boton_2 by remember { mutableStateOf(R.drawable.lr_0) }
@@ -400,6 +364,8 @@ fun CustomButton( //Estos botones personalizados reciben los siguientes parámet
     button_mode: String,
     modifier: Modifier = Modifier
 ) {
+
+    val vibrator = LocalContext.current.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
     var isPressed by remember { mutableStateOf(false)} //Variable para saber si se está presioando el botón
 
     val h_ratio = if (button_mode == "Hor") 0.5f else 1.0f //Esto ayuda a comodar los botones en filas y columnas manteniendo un tamaño equitativo en un cuadrado.
@@ -414,9 +380,11 @@ fun CustomButton( //Estos botones personalizados reciben los siguientes parámet
                     onPress = { offset ->
                         isPressed = true
                         onPress()
+                        vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK))
                         tryAwaitRelease()
                         isPressed = false
                         onRelease()
+                        vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK))
                     }
 
                 )
@@ -490,7 +458,6 @@ fun giroDer(imgSetter: (Int)->Unit, sprSetter: (Int) -> Unit) {
 fun soltarVolante(imgSetter: (Int)->Unit, sprSetter: (Int) -> Unit) {
     imgSetter(R.drawable.lr_0)
     sprSetter(0) //Valores de sprite activo: 0 FRENTE, 1 IZQ, 2 DER
-
     wsClient.sendMessage("SOLTAR")
     Log.d("ACTION","Yendo derecho ...")
 }
