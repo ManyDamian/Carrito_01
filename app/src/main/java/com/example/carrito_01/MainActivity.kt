@@ -2,14 +2,10 @@ package com.example.carrito_01
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Context
-
-import android.content.pm.PackageManager
-import android.os.Build
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
-import android.provider.CalendarContract.Colors
 import android.util.Log
 import android.view.ViewGroup
 import android.webkit.WebSettings
@@ -26,20 +22,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.ColorRes
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.Preview as CameraPreview
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,26 +35,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import kotlinx.coroutines.delay
 import android.webkit.WebViewClient
-import androidx.fragment.app.Fragment
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.platform.LocalInspectionMode
 import okhttp3.*
+import android.content.Context as Context1
 
 
 //========== CLASE WEBSOCKET =========== CONEXION AL ESP32 POR UN WEBSOCKET
@@ -176,7 +159,18 @@ fun MJPEGStream(url: String) {
 
 @Composable
 fun ButtonRow() {
+    // === RECURSOS DE LA INTERFAZ ===
+    // == SONIDOS ==
+        // Contextos para evitar problemas con la preview
+    val context = LocalContext.current
+    val isPreview = LocalInspectionMode.current
+    // Lista de archivos de audio en raw
+    val bocinaList = listOf(R.raw.horn_1, R.raw.horn_2, R.raw.horn_3, R.raw.horn_4, R.raw.horn_5)
+    var bocina by remember { mutableStateOf<MediaPlayer?>(null) }
+    // La bocina tomará un sonido aleatorio de la lista al iniciar el player, mientras tanto, queda null
+    var isPlaying by remember { mutableStateOf(false) } // Estado para deshabilitar el botón mientras suena
 
+    // == VISUALES ==
     // Estado inicial de los botones
     var boton_1 by remember { mutableStateOf(R.drawable.ud_0) }
     var boton_2 by remember { mutableStateOf(R.drawable.lr_0) }
@@ -190,6 +184,7 @@ fun ButtonRow() {
     val spriteTurn = listOf(R.drawable.t_04, R.drawable.t_03, R.drawable.t_02, R.drawable.t_01)
     val frames = if (spriteActivo == 0) spriteFront else spriteTurn
     var turning by remember { mutableStateOf(false) }
+    var char_rumble by remember { mutableStateOf(((-6..0).random())) } //Vibración del personaje sobre el piso
 
     turning = (spriteActivo == 2) //turning se vuelve true sólo si el sprite activo es el 2 (derecha)
 
@@ -204,9 +199,10 @@ fun ButtonRow() {
             } else {
                 frameIndex
             }
-
+            char_rumble = (-6..0).random() //Cambiar valor del agitado del personaje
             delay(83) // delay de la animación (1 fotograma cada 83ms = 12fps +/-)
         }
+        char_rumble = 0
     }
 
 
@@ -225,7 +221,7 @@ fun ButtonRow() {
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter) //Centrado al fondo
-                .padding(15.dp),
+                .padding((15+char_rumble).dp),
             horizontalArrangement = Arrangement.Center
         ) {
             //placeholder
@@ -293,9 +289,10 @@ fun ButtonRow() {
         }
 
         //=== BARRA DE ESTADO ===
+
         Box(
             modifier = Modifier
-                .size(width = maxWidth*.7f, height = 140.dp)
+                .size(width = maxWidth*.7f, height = 120.dp)
                 .align(Alignment.TopCenter)
                 .padding(25.dp),
             contentAlignment =  Alignment.CenterStart
@@ -313,17 +310,18 @@ fun ButtonRow() {
                     modifier = Modifier.padding(horizontal = 25.dp)
                         .fillMaxWidth()
                         .align(Alignment.Center) ){
-                Text(
-                    //Texto para la información que vamos a tener
-                    text = "0.5 m/s",
-                    color = Color.Black,
-                    fontSize = 40.sp
-                )
 
                 Image(
                     painter = painterResource(R.drawable.baseline_camera_alt_24),
                     contentDescription = null,
                     modifier = Modifier.size(50.dp)
+                )
+
+                Text(
+                    //Texto para la información que vamos a tener
+                    text = "0.5 m/s",
+                    color = Color.Black,
+                    fontSize = 40.sp
                 )
 
                 Text(
@@ -334,9 +332,38 @@ fun ButtonRow() {
                     modifier= Modifier.padding(vertical = 10.dp)
                 )
 
+                // IconButton for Start Action
+                IconButton(
+                    onClick = {
+                        if (!isPreview && !isPlaying) {
+                            bocina?.release() // Liberar el reproductor anterior
+                            val selectedSound = bocinaList.random()
+
+                            bocina = MediaPlayer.create(context, selectedSound).apply {
+                                setOnCompletionListener {
+                                    isPlaying = false // Habilitar el botón cuando termine el audio
+                                }
+                                start()
+                                isPlaying = true // Deshabilitar el botón mientras suena el audio
+                            }
+                        }
+                    },
+                    enabled = !isPlaying // Deshabilita el botón mientras el audio suena
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.speaker_icon),
+                        contentDescription = "",
+                        Modifier.size(50.dp)
+                    )
+                }
+
             }
 
+
+
         }
+
+
 
 
     }
@@ -364,13 +391,28 @@ fun CustomButton( //Estos botones personalizados reciben los siguientes parámet
     button_mode: String,
     modifier: Modifier = Modifier
 ) {
+    // === SONIDOS PARA LOS BOTONES, Y CONTEXTO PARA VIBRACIÓN Y MEDIA PLAYER
+    val context = LocalContext.current
+    val isPreview = LocalInspectionMode.current
 
-    val vibrator = LocalContext.current.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+    val sound_press = R.raw.b_press         //Sonido de presionar botón
+    val sound_release = R.raw.b_release     //Sonido de soltar botón
+
+    val vibrator = context.getSystemService(Context1.VIBRATOR_SERVICE) as Vibrator
     var isPressed by remember { mutableStateOf(false)} //Variable para saber si se está presioando el botón
 
     val h_ratio = if (button_mode == "Hor") 0.5f else 1.0f //Esto ayuda a comodar los botones en filas y columnas manteniendo un tamaño equitativo en un cuadrado.
     val v_ratio = if (button_mode == "Ver") 0.5f else 1.0f //Es decir, podremos tener 2 botones horizontales en una fila, o 2 botones verticales en una columna, haciendo que ambos juntos formen un cuadrado perfecto
+    var isEnabled by remember { mutableStateOf(true) }
 
+    fun soundplay(sres: Int) {
+        if (!isPreview) {
+            val mediaPlayer = MediaPlayer.create(context, sres)
+            mediaPlayer.setOnCompletionListener { it.release() } // Libera recursos cuando termina
+            mediaPlayer.start()
+        }
+        vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK))
+    }
 
     Box (
         modifier = modifier
@@ -378,15 +420,23 @@ fun CustomButton( //Estos botones personalizados reciben los siguientes parámet
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = { offset ->
+                        if (!isEnabled) return@detectTapGestures  // Bloquea el toque si está deshabilitado
+
+                        isEnabled = false  // Deshabilita el botón temporalmente
                         isPressed = true
                         onPress()
-                        vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK))
+                        soundplay(sound_press)
+
                         tryAwaitRelease()
+
                         isPressed = false
                         onRelease()
-                        vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK))
-                    }
+                        soundplay(sound_release)
+                        // Esperar unos ms antes de volver a habilitar el botón
+                            delay(100)
+                            isEnabled = true
 
+                    }
                 )
             }
 
@@ -412,6 +462,9 @@ fun CustomButton( //Estos botones personalizados reciben los siguientes parámet
         )
     }
 }
+
+
+
 
 // Funciones incompletas, serán enlazadas a las funciones del ESP32
 // BOTON 1
