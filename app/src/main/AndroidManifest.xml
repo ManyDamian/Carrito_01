@@ -4,6 +4,9 @@
     <!-- usesCleartextTraffic Y uses-permission SON NECESARIOS PARA PERMITIR CONEXION CON WS -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+
 
     <application
         android:usesCleartextTraffic="true"
