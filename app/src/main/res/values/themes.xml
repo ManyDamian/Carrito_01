@@ -3,4 +3,10 @@
 
     <style name="Theme.Carrito_01" parent="android:Theme.Material.NoActionBar.Fullscreen" />
 
+    <style name="MiTemaDinamico" parent="Theme.MaterialComponents.DayNight">
+        <item name="colorPrimary">@color/color_dinamico</item>
+        <item name="colorAccent">@color/color_dinamico</item>
+    </style>
+
+
 </resources>

@@ -2,6 +2,7 @@ package com.example.carrito_01
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
@@ -61,6 +62,15 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
         // Cargar la imagen guardada
         loadProfileImage()
+
+        //COLORES
+        sharedPreferences.registerOnSharedPreferenceChangeListener { _, key ->
+            if (key == "enable_custom_colors" || key == "color_hue" || key == "color_saturation" || key == "color_value") {
+                updateColors()
+            }
+        }
+
+        updateColors() // Aplicar colores al inicio
     }
 
     private fun openGallery() {
@@ -100,6 +110,27 @@ class SettingsFragment : PreferenceFragmentCompat() {
             profilePicPref?.summary = "Imagen seleccionada"
         } else {
             profilePicPref?.summary = "No hay imagen seleccionada"
+        }
+    }
+
+    //COLORES
+
+    private fun updateColors() {
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val enableCustomColors = sharedPreferences.getBoolean("enable_custom_colors", false)
+
+        if (enableCustomColors) {
+            val hue = sharedPreferences.getInt("color_hue", 100).toFloat()
+            val saturation = sharedPreferences.getInt("color_saturation", 50) / 100f
+            val value = sharedPreferences.getInt("color_value", 50) / 100f
+
+            val color = Color.HSVToColor(floatArrayOf(hue, saturation, value))
+
+            // Aplicar el color a los elementos de la UI
+            activity?.window?.decorView?.setBackgroundColor(color) // Cambia el fondo de la actividad
+
+            // También podrías cambiar dinámicamente los estilos de los elementos
+            // Aquí tendrías que acceder a cada Preference y modificarlo manualmente.
         }
     }
 }

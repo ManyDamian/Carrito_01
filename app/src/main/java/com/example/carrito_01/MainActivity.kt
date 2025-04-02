@@ -118,7 +118,7 @@ class WebSocketClient(url: String) {
 
 
 // Asignamos el wsClient como objeto público
-val conIP = "192.168.1.127" //IP DEL SOCKET
+val conIP = "192.168.1.114" //IP DEL SOCKET
 val wsClient = WebSocketClient("ws://$conIP:80")
 
 

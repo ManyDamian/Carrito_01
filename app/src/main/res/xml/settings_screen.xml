@@ -19,6 +19,7 @@
             android:title="@string/customcolor" />
 
         <SeekBarPreference
+
             android:min="0"
             android:defaultValue="100"
             android:dependency="enable_custom_colors"
