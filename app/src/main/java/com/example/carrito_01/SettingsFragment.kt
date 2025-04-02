@@ -15,6 +15,7 @@ import androidx.preference.PreferenceManager
 class SettingsFragment : PreferenceFragmentCompat() {
 
     private var profilePicPref: Preference? = null //Implementamos la preferencia  para guardar la imagen en sharedpreferences
+    private var namepref: Preference? = null
 
     // Lanzador para abrir la galería
     private val imagePickerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -36,14 +37,27 @@ class SettingsFragment : PreferenceFragmentCompat() {
         val saturation = sharedPreferences.getInt("color_saturation", 50)
         val value = sharedPreferences.getInt("color_value", 50)
 
+        val username = sharedPreferences.getString("username", "Usuario")  // "Usuario" es el valor por defecto
+
         //imprimir estos valores para verificar
         Log.d("SettingsFragment", "Custom Colors: $enableCustomColors, H: $hue, S: $saturation, V: $value")
+
+        namepref = findPreference("username")
 
         profilePicPref = findPreference("profile_picture")
         profilePicPref?.setOnPreferenceClickListener {
             openGallery()
             true
         }
+
+        if (username != "Usuario") {
+
+            namepref?.summary = "$username"
+        } else {
+            namepref?.summary = "Introduce tu nombre"
+        }
+
+
 
         // Cargar la imagen guardada
         loadProfileImage()

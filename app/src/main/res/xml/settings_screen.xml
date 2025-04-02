@@ -55,12 +55,21 @@
             android:defaultValue="Usuario"
             android:dialogTitle="Ingrese su nombre de usuario"
             android:key="username"
-            android:title="@string/username" />
+            android:title="@string/username"
+            android:summary="Cambia tu nombre de usuario"
+            />
+
+        <SwitchPreferenceCompat
+            android:defaultValue="true"
+            android:key="enable_profilepic"
+            android:title="Usar foto de perfil personalizada"
+            android:summary="Si se desactiva, se utilizará el logo por default"/>
 
         <Preference
             android:key="profile_picture"
             android:summary="@string/changepp"
-            android:title="@string/ppic" />
+            android:title="@string/ppic"
+            android:dependency="enable_profilepic"/>
     </PreferenceCategory>
 
     </PreferenceScreen>

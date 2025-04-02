@@ -2,7 +2,13 @@ package com.example.carrito_01
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.pm.PackageManager
 import android.media.MediaPlayer
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -46,11 +52,32 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import kotlinx.coroutines.delay
 import android.webkit.WebViewClient
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
+import androidx.preference.PreferenceManager
 import okhttp3.*
 import android.content.Context as Context1
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
+
+class MyApplication : Application() {
+    companion object {
+        lateinit var instance: MyApplication
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        instance = this
+    }
+}
 
 
 //========== CLASE WEBSOCKET =========== CONEXION AL ESP32 POR UN WEBSOCKET
@@ -63,6 +90,7 @@ class WebSocketClient(url: String) {
         override fun onOpen(ws: WebSocket, response: Response) {
             println("✅ Conectado al WebSocket")
             webSocket = ws // Guardar la conexión activa
+            showNotification(MyApplication.instance.applicationContext, "Conexión esablecida", "Web Socket: $ws")
         }
 
         override fun onMessage(ws: WebSocket, text: String) {
@@ -71,6 +99,7 @@ class WebSocketClient(url: String) {
 
         override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
             println("❌ Error en WebSocket: ${t.message}")
+            showNotification(MyApplication.instance.applicationContext, "Error en la conexión", "Asegurese que el carrito esté funcionando y conectado a internet. Intente de nuevo.")
         }
     }
 
@@ -97,9 +126,23 @@ val wsClient = WebSocketClient("ws://$conIP:80")
 //========== CLASE PRINCIPAL =============
 class MainActivity : ComponentActivity() {
 
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                showNotification(this, "Permiso concedido", "Ahora puedes recibir notificaciones.")
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Pedir permiso en Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
 
         // CONEXIÓN CON EL WEBSOCKET
         wsClient.connect()
@@ -289,6 +332,38 @@ fun ButtonRow() {
         }
 
         //=== BARRA DE ESTADO ===
+        // Obtener SharedPreferences
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(LocalContext.current)
+        val imageUriString = sharedPreferences.getString("profile_picture_uri", null)
+        val enablePP = sharedPreferences.getBoolean("enable_profilepic", false)
+
+        // Convertir a URI si no es null
+        val imageUri = imageUriString?.let { Uri.parse(it) }
+
+        // Imagen predeterminada en caso de que no haya una seleccionada
+        val defaultImage = R.drawable.icon_95 // Reemplaza con tu imagen predeterminada
+        val finalImage = if (enablePP && imageUri != null) imageUri else defaultImage
+
+        val imageModifier = Modifier
+            .size(100.dp)
+            .then(if (enablePP) Modifier.clip(RoundedCornerShape(16.dp)) else Modifier)
+
+        Row(horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.padding(15.dp)){
+
+            Image(
+                painter = rememberAsyncImagePainter(
+                    ImageRequest.Builder(context)
+                        .data(finalImage) // Si `imageUri` es null, usa la predeterminada
+                        .crossfade(true) // Efecto de transición suave
+                        .build()
+                ),
+                contentDescription = null,
+                modifier = imageModifier,
+                    contentScale = if (enablePP) ContentScale.Crop else ContentScale.Fit // Recorte la imagen al centro (1:1)
+            )
+        }
+
 
         Box(
             modifier = Modifier
@@ -306,10 +381,12 @@ fun ButtonRow() {
                 )
             }
 
+
             Row (horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.padding(horizontal = 25.dp)
                         .fillMaxWidth()
                         .align(Alignment.Center) ){
+
 
                 Image(
                     painter = painterResource(R.drawable.baseline_camera_alt_24),
@@ -515,3 +592,42 @@ fun soltarVolante(imgSetter: (Int)->Unit, sprSetter: (Int) -> Unit) {
     Log.d("ACTION","Yendo derecho ...")
 }
 
+// NOTIFICACIONES
+
+fun showNotification(context: Context1, title: String, message: String) {
+    val channelId = "my_channel_id"
+    val notificationId = 1
+
+    // Crear el canal de notificación en Android 8+ (Oreo, API 26+)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val channel = NotificationChannel(
+            channelId,
+            "My Notifications",
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Channel Description"
+        }
+
+        val notificationManager: NotificationManager =
+            context.getSystemService(Context1.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
+    }
+
+    // Crear la notificación
+    val notification = NotificationCompat.Builder(context, channelId)
+        .setSmallIcon(android.R.drawable.ic_dialog_info)
+        .setContentTitle(title)
+        .setContentText(message)
+        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+        .setAutoCancel(true) // Se cierra al tocarla
+        .build()
+
+    // Mostrar la notificación
+    with(NotificationManagerCompat.from(context)) {
+        // Verificar permisos en Android 13+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            notify(notificationId, notification)
+        }
+    }
+}

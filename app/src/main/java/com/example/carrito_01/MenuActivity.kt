@@ -65,8 +65,9 @@ class MenuActivity : AppCompatActivity() {
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         val imageUriString = sharedPreferences.getString("profile_picture_uri", null)
+        val enablePP = sharedPreferences.getBoolean("enable_profilepic", false)
 
-        if (imageUriString != null) {
+        if (imageUriString != null && enablePP) {
             try {
                 val imageUri = Uri.parse(imageUriString)
                 val inputStream = contentResolver.openInputStream(imageUri)
