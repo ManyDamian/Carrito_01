@@ -36,11 +36,11 @@
             android:title="Saturacion" />
 
         <SeekBarPreference
-            android:min="0"
+            android:min="20"
             android:defaultValue="50"
             android:dependency="enable_custom_colors"
             android:key="color_value"
-            android:max="100"
+            android:max="90"
             android:title="Valor" />
     </PreferenceCategory>
 

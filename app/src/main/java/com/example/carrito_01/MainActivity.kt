@@ -2,10 +2,12 @@ package com.example.carrito_01
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
@@ -67,6 +69,8 @@ import okhttp3.*
 import android.content.Context as Context1
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
+import java.io.File
+import java.io.FileOutputStream
 
 class MyApplication : Application() {
     companion object {
@@ -387,12 +391,18 @@ fun ButtonRow() {
                         .fillMaxWidth()
                         .align(Alignment.Center) ){
 
+                IconButton(
+                    onClick = {
+                        takeScreenshot(context, "MACUIN_CAM-")
+                    },
 
-                Image(
-                    painter = painterResource(R.drawable.baseline_camera_alt_24),
-                    contentDescription = null,
-                    modifier = Modifier.size(50.dp)
-                )
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.baseline_camera_alt_24),
+                        contentDescription = "",
+                        Modifier.size(50.dp)
+                    )
+                }
 
                 Text(
                     //Texto para la información que vamos a tener
@@ -409,7 +419,6 @@ fun ButtonRow() {
                     modifier= Modifier.padding(vertical = 10.dp)
                 )
 
-                // IconButton for Start Action
                 IconButton(
                     onClick = {
                         if (!isPreview && !isPlaying) {
@@ -591,6 +600,25 @@ fun soltarVolante(imgSetter: (Int)->Unit, sprSetter: (Int) -> Unit) {
     wsClient.sendMessage("SOLTAR")
     Log.d("ACTION","Yendo derecho ...")
 }
+
+//FOTOGRAFIAS
+fun takeScreenshot(context: Context1, filePrefix: String) {
+    val view = (context as Activity).window.decorView.rootView
+    val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(bitmap)
+    view.draw(canvas)
+
+    val dir = File(context.filesDir, "capturas")
+    if (!dir.exists()) dir.mkdirs()
+
+    val fileName = "$filePrefix-${System.currentTimeMillis()}.jpg"
+    val file = File(dir, fileName)
+
+    FileOutputStream(file).use { out ->
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
+    }
+}
+
 
 // NOTIFICACIONES
 
