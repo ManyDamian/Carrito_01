@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.MediaStore
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -27,8 +28,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,8 +44,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import coil.compose.rememberAsyncImagePainter
 import java.io.File
@@ -64,6 +70,9 @@ fun GalleryScreen() {
     val imagesDir = File(context.filesDir, "capturas")
     val imageList = remember { mutableStateListOf<File>() }
 
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var imageToDelete by remember { mutableStateOf<Pair<Int, File>?>(null) }
+
     // Cargar imágenes
     LaunchedEffect(imagesDir) {
         if (imagesDir.exists()) {
@@ -75,25 +84,58 @@ fun GalleryScreen() {
     var expandedImageIndex by remember { mutableStateOf<Int?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            contentPadding = PaddingValues(8.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
-            items(imageList, key = { it.name }) { imageFile ->
-                Image(
-                    painter = rememberAsyncImagePainter(imageFile),
-                    contentDescription = null,
+            Text(
+                text = "GALERÍA",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                textAlign = TextAlign.Center
+            )
+
+            if (imageList.isEmpty()) {
+                Box(
                     modifier = Modifier
-                        .padding(4.dp)
-                        .aspectRatio(1f)
-                        .clickable {
-                            expandedImageIndex = imageList.indexOf(imageFile)
-                        }
-                )
+                        .fillMaxSize()
+                        .padding(top = 32.dp),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    Text(
+                        text = "No hay elementos en la galería.",
+                        fontSize = 16.sp,
+                        color = Color.LightGray
+                    )
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    contentPadding = PaddingValues(8.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(imageList, key = { it.name }) { imageFile ->
+                        Image(
+                            painter = rememberAsyncImagePainter(imageFile),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .aspectRatio(1f)
+                                .clickable {
+                                    expandedImageIndex = imageList.indexOf(imageFile)
+                                }
+                        )
+                    }
+                }
             }
         }
 
-        // Vista expandida
+        // Vista expandida (sin cambios)
         expandedImageIndex?.let { index ->
             val image = imageList[index]
 
@@ -102,11 +144,9 @@ fun GalleryScreen() {
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.9f))
                     .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = {
-                                expandedImageIndex = null
-                            }
-                        )
+                        detectTapGestures(onTap = {
+                            expandedImageIndex = null
+                        })
                     }
             ) {
                 Column(
@@ -122,7 +162,7 @@ fun GalleryScreen() {
                             .fillMaxWidth()
                             .aspectRatio(1f)
                             .pointerInput(imageList) {
-                                detectHorizontalDragGestures { change, dragAmount ->
+                                detectHorizontalDragGestures { _, dragAmount ->
                                     if (dragAmount > 30 && index > 0) {
                                         expandedImageIndex = index - 1
                                     } else if (dragAmount < -30 && index < imageList.size - 1) {
@@ -139,9 +179,8 @@ fun GalleryScreen() {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Button(onClick = {
-                            image.delete()
-                            imageList.removeAt(index)
-                            expandedImageIndex = null
+                            imageToDelete = index to image
+                            showDeleteDialog = true
                         }) {
                             Text("Eliminar")
                         }
@@ -158,23 +197,58 @@ fun GalleryScreen() {
                             Text("Compartir")
                         }
                     }
+
+                    if (showDeleteDialog && imageToDelete != null) {
+                        AlertDialog(
+                            onDismissRequest = { showDeleteDialog = false },
+                            title = { Text("¿Eliminar imagen?") },
+                            text = { Text("¿Estás seguro de que deseas eliminar esta imagen?") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    val (i, img) = imageToDelete!!
+                                    if (img.delete()) {
+                                        imageList.removeAt(i)
+                                        expandedImageIndex = null
+                                        Toast.makeText(context, "Imagen eliminada", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "Error al eliminar imagen", Toast.LENGTH_SHORT).show()
+                                    }
+                                    showDeleteDialog = false
+                                    imageToDelete = null
+                                }) {
+                                    Text("Sí")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = {
+                                    showDeleteDialog = false
+                                    imageToDelete = null
+                                }) {
+                                    Text("No")
+                                }
+                            }
+                        )
+                    }
+
                 }
             }
         }
     }
 }
 
+
 fun saveToGallery(context: Context, file: File) {
     val values = ContentValues().apply {
         put(MediaStore.Images.Media.DISPLAY_NAME, file.name)
         put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-        put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/ESP32Capturas")
+        put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CarritoMacuin")
     }
 
     val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
     uri?.let {
         context.contentResolver.openOutputStream(it)?.use { out ->
             file.inputStream().copyTo(out)
+            Toast.makeText(context, "Imagen guardada en la galería", Toast.LENGTH_SHORT).show()
         }
     }
 }
@@ -198,7 +272,7 @@ fun shareImage(context: Context, file: File) {
 
 // ============= PREVIEW DE LAYOUT ==============
 
-@Preview(showBackground = true, widthDp = 960, heightDp = 432) //para una resolución 2400 x 1080, los dp son 960 x 432
+@Preview(showBackground = true, widthDp = 432, heightDp = 960) //para una resolución 2400 x 1080, los dp son 960 x 432
 @Composable
 fun PreviewG() {
 
