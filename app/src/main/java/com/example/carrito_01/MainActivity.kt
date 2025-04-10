@@ -6,15 +6,20 @@ import android.app.Activity
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.ContextWrapper
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Rect
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
+import android.view.PixelCopy
 import android.view.ViewGroup
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -393,7 +398,9 @@ fun ButtonRow() {
 
                 IconButton(
                     onClick = {
-                        takeScreenshot(context, "MACUIN_CAM-")
+                        context.findActivity()?.let { activity ->
+                            takeScreenshot(activity, "MACUIN_CAM-")
+                        }
                     },
 
                 ) {
@@ -602,22 +609,38 @@ fun soltarVolante(imgSetter: (Int)->Unit, sprSetter: (Int) -> Unit) {
 }
 
 //FOTOGRAFIAS
-fun takeScreenshot(context: Context1, filePrefix: String) {
-    val view = (context as Activity).window.decorView.rootView
+fun takeScreenshot(activity: Activity, filePrefix: String) {
+    val view = activity.window.decorView
     val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
-    val canvas = android.graphics.Canvas(bitmap)
-    view.draw(canvas)
-
-    val dir = File(context.filesDir, "capturas")
-    if (!dir.exists()) dir.mkdirs()
-
     val fileName = "$filePrefix-${System.currentTimeMillis()}.jpg"
-    val file = File(dir, fileName)
+    val file = File(activity.filesDir, "capturas").apply { mkdirs() }.resolve(fileName)
 
-    FileOutputStream(file).use { out ->
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
-    }
+    val location = IntArray(2)
+    view.getLocationInWindow(location)
+
+    PixelCopy.request(
+        activity.window,
+        Rect(location[0], location[1], location[0] + view.width, location[1] + view.height),
+        bitmap,
+        { result ->
+            if (result == PixelCopy.SUCCESS) {
+                FileOutputStream(file).use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
+                }
+            } else {
+                Log.e("Screenshot", "PixelCopy failed with result: $result")
+            }
+        },
+        Handler(Looper.getMainLooper())
+    )
 }
+
+fun Context1.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
 
 
 // NOTIFICACIONES

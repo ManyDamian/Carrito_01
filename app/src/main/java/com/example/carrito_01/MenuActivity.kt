@@ -32,6 +32,7 @@ class MenuActivity : AppCompatActivity() {
 
         val btnPlay = findViewById<Button>(R.id.btnPlay)
         val btnSettings = findViewById<Button>(R.id.btnSettings)
+        val btnGlr = findViewById<Button>(R.id.btnGlr)
 
         // Cargar la animación desde el archivo XML
         val scaleAnimation = AnimationUtils.loadAnimation(this, R.anim.scale_button)
@@ -46,6 +47,12 @@ class MenuActivity : AppCompatActivity() {
             it.startAnimation(scaleAnimation)  // Iniciar animación
             startActivity(Intent(this, SettingsActivity::class.java))
         }
+
+        btnGlr.setOnClickListener {
+            it.startAnimation(scaleAnimation)  // Iniciar animación
+            startActivity(Intent(this, GalleryActivity::class.java))
+        }
+
 
 
     }
