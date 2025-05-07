@@ -418,7 +418,7 @@ fun ButtonRow() {
 
                 // Velocidad
                 Text(
-                    text = "0.51 m/s",
+                    text = "0.5 m/s",
                     color = Color.White,
                     fontSize = 20.sp
                 )
