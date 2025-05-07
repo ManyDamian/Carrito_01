@@ -688,6 +688,7 @@ fun showNotification(context: Context1, title: String, message: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
             notify(notificationId, notification)
+            //a
         }
     }
 }
