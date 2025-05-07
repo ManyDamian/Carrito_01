@@ -211,9 +211,11 @@ fun MJPEGStream(url: String) {
 
 @Composable
 fun ButtonRow() {
+    var score by remember { mutableStateOf(0) }
+
     // === RECURSOS DE LA INTERFAZ ===
     // == SONIDOS ==
-        // Contextos para evitar problemas con la preview
+    // Contextos para evitar problemas con la preview
     val context = LocalContext.current
     val isPreview = LocalInspectionMode.current
     // Lista de archivos de audio en raw
@@ -319,9 +321,13 @@ fun ButtonRow() {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(){       //Los custombuttoms se complicaron un poco, pero en resumen: texto, { funcion onpress( {logica boton},{logica animacion} }, { funcion onrelease (lomismo)} }, tamaño de boton, modo de boton
-                CustomButton("FW", { acelerar(imgSetter = { xclr -> boton_1 = xclr }, animSetter = {anim -> animando = anim}) },
-                    { frenar(imgSetter= { stp -> boton_1 = stp }, animSetter = {anim -> animando = anim} )},
-                    buttonSize,"Ver")
+                CustomButton("FW", {
+                    acelerar(imgSetter = { xclr -> boton_1 = xclr }, animSetter = {anim -> animando = anim})
+                    score += 10  // Aumentar puntaje al acelerar
+                }, {
+                    frenar(imgSetter= { stp -> boton_1 = stp }, animSetter = {anim -> animando = anim} )
+                }, buttonSize,"Ver")
+
 
                 CustomButton("BW", { reversa(imgSetter =  { rev -> boton_1 = rev } , animSetter = {anim -> animando = anim} )},
                     { frenar(imgSetter= { stp -> boton_1 = stp }, animSetter = {anim -> animando = anim} ) },
@@ -369,7 +375,7 @@ fun ButtonRow() {
                 ),
                 contentDescription = null,
                 modifier = imageModifier,
-                    contentScale = if (enablePP) ContentScale.Crop else ContentScale.Fit // Recorte la imagen al centro (1:1)
+                contentScale = if (enablePP) ContentScale.Crop else ContentScale.Fit // Recorte la imagen al centro (1:1)
             )
         }
 
@@ -382,85 +388,88 @@ fun ButtonRow() {
             contentAlignment =  Alignment.CenterStart
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-
                 drawRoundRect(
-                    color = Color.hsl(0f,0f,1.0f,0.5f),
-                    cornerRadius = CornerRadius(100f,100f)
-
+                    color = Color.Black.copy(alpha = 0.6f),
+                    cornerRadius = CornerRadius(40f, 40f)
                 )
             }
 
-
-            Row (horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.padding(horizontal = 25.dp)
-                        .fillMaxWidth()
-                        .align(Alignment.Center) ){
-
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Cámara
                 IconButton(
                     onClick = {
                         context.findActivity()?.let { activity ->
                             takeScreenshot(activity, "MACUIN_CAM-")
                         }
-                    },
-
+                    }
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.baseline_camera_alt_24),
-                        contentDescription = "",
-                        Modifier.size(50.dp)
+                        contentDescription = "Captura",
+                        modifier = Modifier.size(40.dp)
                     )
                 }
 
+                // Velocidad
                 Text(
-                    //Texto para la información que vamos a tener
                     text = "0.5 m/s",
-                    color = Color.Black,
-                    fontSize = 40.sp
+                    color = Color.White,
+                    fontSize = 20.sp
                 )
 
+                // Ping
                 Text(
-                    //Texto para la información que vamos a tener
                     text = "ping: 02ms",
-                    color = Color.Black,
-                    fontSize = 25.sp,
-                    modifier= Modifier.padding(vertical = 10.dp)
+                    color = Color.White,
+                    fontSize = 16.sp
                 )
 
+                // Bocina
                 IconButton(
                     onClick = {
                         if (!isPreview && !isPlaying) {
-                            bocina?.release() // Liberar el reproductor anterior
+                            bocina?.release()
                             val selectedSound = bocinaList.random()
-
                             bocina = MediaPlayer.create(context, selectedSound).apply {
-                                setOnCompletionListener {
-                                    isPlaying = false // Habilitar el botón cuando termine el audio
-                                }
+                                setOnCompletionListener { isPlaying = false }
                                 start()
-                                isPlaying = true // Deshabilitar el botón mientras suena el audio
+                                isPlaying = true
                             }
                         }
                     },
-                    enabled = !isPlaying // Deshabilita el botón mientras el audio suena
+                    enabled = !isPlaying
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.speaker_icon),
-                        contentDescription = "",
-                        Modifier.size(50.dp)
+                        contentDescription = "Bocina",
+                        modifier = Modifier.size(40.dp)
                     )
                 }
 
+                // Puntaje
+                Text(
+                    text = "Puntaje: $score",
+                    color = Color.White,
+                    fontSize = 20.sp
+                )
             }
-
-
-
         }
 
 
 
 
     }
-}
+
+
+
+
+    }
 
 
 // ============= PREVIEW DE LAYOUT ==============
@@ -526,8 +535,8 @@ fun CustomButton( //Estos botones personalizados reciben los siguientes parámet
                         onRelease()
                         soundplay(sound_release)
                         // Esperar unos ms antes de volver a habilitar el botón
-                            delay(100)
-                            isEnabled = true
+                        delay(100)
+                        isEnabled = true
 
                     }
                 )
