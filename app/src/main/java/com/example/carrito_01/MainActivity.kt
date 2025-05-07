@@ -633,10 +633,12 @@ fun takeScreenshot(activity: Activity, filePrefix: String) {
         bitmap,
         { result ->
             if (result == PixelCopy.SUCCESS) {
+                Toast.makeText(activity, "Captura guardada: ${file.name}", Toast.LENGTH_SHORT).show()
                 FileOutputStream(file).use { out ->
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
                 }
             } else {
+                Toast.makeText(activity, "Error al capturar la pantalla", Toast.LENGTH_SHORT).show()
                 Log.e("Screenshot", "PixelCopy failed with result: $result")
             }
         },
