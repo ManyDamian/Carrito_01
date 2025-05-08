@@ -254,6 +254,7 @@ fun ButtonRow() {
                 frameIndex
             }
             char_rumble = (-6..0).random() //Cambiar valor del agitado del personaje
+            score += 1
             delay(83) // delay de la animación (1 fotograma cada 83ms = 12fps +/-)
         }
         char_rumble = 0
@@ -323,7 +324,7 @@ fun ButtonRow() {
             Column(){       //Los custombuttoms se complicaron un poco, pero en resumen: texto, { funcion onpress( {logica boton},{logica animacion} }, { funcion onrelease (lomismo)} }, tamaño de boton, modo de boton
                 CustomButton("FW", {
                     acelerar(imgSetter = { xclr -> boton_1 = xclr }, animSetter = {anim -> animando = anim})
-                    score += 10  // Aumentar puntaje al acelerar
+                    //score += 10  // Aumentar puntaje al acelerar
                 }, {
                     frenar(imgSetter= { stp -> boton_1 = stp }, animSetter = {anim -> animando = anim} )
                 }, buttonSize,"Ver")
